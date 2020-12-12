@@ -43,6 +43,7 @@ import (
 )
 
 type serverCmd struct {
+	// 服务器停止信号
 	// Can be used to stop the server. Useful in tests
 	stop <-chan bool
 

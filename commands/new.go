@@ -75,6 +75,7 @@ func (n *newCmd) newContent(cmd *cobra.Command, args []string) error {
 	}
 
 	// 初始化配置项
+	// running 标记是否开启 server 模式
 	c, err := initializeConfig(true, false, &n.hugoBuilderCommon, n, cfgInit)
 	if err != nil {
 		return err

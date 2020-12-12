@@ -198,9 +198,14 @@ Complete documentation is available at http://gohugo.io/.`,
 	return cc
 }
 
+// cmd 最基础参数
+// 为什么说是最基础的呢
+// 因为 hugo cmd 套了无数次
+// 我非要把它理清楚 ###
 type hugoBuilderCommon struct {
 	source      string
 	baseURL     string
+	// 运行环境 develop, production
 	environment string
 
 	buildWatch bool
@@ -219,6 +224,7 @@ type hugoBuilderCommon struct {
 	verbose    bool
 	verboseLog bool
 	debug      bool
+	// 静默模式
 	quiet      bool
 
 	cfgFile string
@@ -231,21 +237,27 @@ func (cc *hugoBuilderCommon) timeTrack(start time.Time, name string) {
 		return
 	}
 	elapsed := time.Since(start)
+	// 记录某个行为执行了多长时间
 	fmt.Printf("%s in %v ms\n", name, int(1000*elapsed.Seconds()))
 }
 
+// 获取配置文件夹路径
 func (cc *hugoBuilderCommon) getConfigDir(baseDir string) string {
+	// 从 cmd flag 获取
 	if cc.cfgDir != "" {
 		return paths.AbsPathify(baseDir, cc.cfgDir)
 	}
 
+	// 从 env 获取
 	if v, found := os.LookupEnv("HUGO_CONFIGDIR"); found {
 		return paths.AbsPathify(baseDir, v)
 	}
 
+	// 默认 config 文件夹
 	return paths.AbsPathify(baseDir, "config")
 }
 
+// 获取运行环境 dev, prod
 func (cc *hugoBuilderCommon) getEnvironment(isServer bool) string {
 	if cc.environment != "" {
 		return cc.environment

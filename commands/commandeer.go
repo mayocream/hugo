@@ -93,6 +93,7 @@ type commandeer struct {
 	configured bool
 	paused     bool
 
+	// 同步信号量
 	fullRebuildSem *semaphore.Weighted
 
 	// Any error from the last build.
@@ -101,6 +102,7 @@ type commandeer struct {
 
 func newCommandeerHugoState() *commandeerHugoState {
 	return &commandeerHugoState{
+		// 创建标记完成的通道
 		created: make(chan struct{}),
 	}
 }
@@ -176,8 +178,10 @@ func newCommandeer(mustHaveConfigFile, running bool, h *hugoBuilderCommon, f fla
 		ftch:                f,
 		commandeerHugoState: newCommandeerHugoState(),
 		cfgInit:             cfgInit,
+		// 淘汰队列最大为 10
 		visitedURLs:         types.NewEvictingStringQueue(10),
 		debounce:            rebuildDebouncer,
+		// 同步信号量，同时只能有一个进行
 		fullRebuildSem:      semaphore.NewWeighted(1),
 		// This will be replaced later, but we need something to log to before the configuration is read.
 		logger: loggers.NewLogger(jww.LevelWarn, jww.LevelError, out, ioutil.Discard, running),
@@ -369,6 +373,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 			fs.Destination = new(afero.MemMapFs)
 		}
 
+		// 快速渲染模式
 		if c.fastRenderMode {
 			// For now, fast render mode only. It should, however, be fast enough
 			// for the full variant, too.
