@@ -154,6 +154,7 @@ built with love by spf13 and friends in Go.
 
 Complete documentation is available at http://gohugo.io/.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// 记录全局操作耗时
 			defer cc.timeTrack(time.Now(), "Total")
 			cfgInit := func(c *commandeer) error {
 				if cc.buildWatch {
@@ -281,7 +282,7 @@ func (cc *hugoBuilderCommon) getEnvironment(isServer bool) string {
 
 func (cc *hugoBuilderCommon) handleCommonBuilderFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&cc.source, "source", "s", "", "filesystem path to read files relative from")
-	cmd.PersistentFlags().SetAnnotation("source", cobra.BashCompSubdirsInDir, []string{})
+	_ = cmd.PersistentFlags().SetAnnotation("source", cobra.BashCompSubdirsInDir, []string{})
 	cmd.PersistentFlags().StringVarP(&cc.environment, "environment", "e", "", "build environment")
 	cmd.PersistentFlags().StringP("themesDir", "", "", "filesystem path to themes directory")
 	cmd.PersistentFlags().BoolP("ignoreVendor", "", false, "ignores any _vendor directory")
@@ -292,7 +293,7 @@ func (cc *hugoBuilderCommon) handleFlags(cmd *cobra.Command) {
 	cc.handleCommonBuilderFlags(cmd)
 	cmd.Flags().Bool("cleanDestinationDir", false, "remove files from destination not found in static directories")
 	cmd.Flags().BoolP("buildDrafts", "D", false, "include content marked as draft")
-	cmd.Flags().BoolP("buildFuture", "F", false, "include content with publishdate in the future")
+	cmd.Flags().BoolP("buildFuture", "F", false, "include content with publish date in the future")
 	cmd.Flags().BoolP("buildExpired", "E", false, "include expired content")
 	cmd.Flags().StringP("contentDir", "c", "", "filesystem path to content directory")
 	cmd.Flags().StringP("layoutDir", "l", "", "filesystem path to layout directory")
@@ -318,9 +319,9 @@ func (cc *hugoBuilderCommon) handleFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cc.traceprofile, "trace", "", "", "write trace to `file` (not useful in general)")
 
 	// Hide these for now.
-	cmd.Flags().MarkHidden("profile-cpu")
-	cmd.Flags().MarkHidden("profile-mem")
-	cmd.Flags().MarkHidden("profile-mutex")
+	_ = cmd.Flags().MarkHidden("profile-cpu")
+	_ = cmd.Flags().MarkHidden("profile-mem")
+	_ = cmd.Flags().MarkHidden("profile-mutex")
 
 	cmd.Flags().StringSlice("disableKinds", []string{}, "disable different kind of pages (home, RSS etc.)")
 
