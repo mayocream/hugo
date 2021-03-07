@@ -15,8 +15,8 @@
 package pandoc
 
 import (
-	"os/exec"
-
+	"github.com/cli/safeexec"
+	"github.com/gohugoio/hugo/htesting"
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/internal"
 
@@ -65,7 +65,7 @@ func (c *pandocConverter) getPandocContent(src []byte, ctx converter.DocumentCon
 }
 
 func getPandocExecPath() string {
-	path, err := exec.LookPath("pandoc")
+	path, err := safeexec.LookPath("pandoc")
 	if err != nil {
 		return ""
 	}
@@ -75,5 +75,8 @@ func getPandocExecPath() string {
 
 // Supports returns whether Pandoc is installed on this computer.
 func Supports() bool {
+	if htesting.SupportsAll() {
+		return true
+	}
 	return getPandocExecPath() != ""
 }

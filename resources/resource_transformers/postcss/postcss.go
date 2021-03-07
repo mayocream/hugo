@@ -19,12 +19,15 @@ import (
 	"encoding/hex"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/cli/safeexec"
+
+	"github.com/gohugoio/hugo/common/hexec"
 
 	"github.com/gohugoio/hugo/common/hugo"
 
@@ -146,10 +149,10 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	binary := csiBinPath
 
-	if _, err := exec.LookPath(binary); err != nil {
+	if _, err := safeexec.LookPath(binary); err != nil {
 		// Try PATH
 		binary = binaryName
-		if _, err := exec.LookPath(binary); err != nil {
+		if _, err := safeexec.LookPath(binary); err != nil {
 			// This may be on a CI server etc. Will fall back to pre-built assets.
 			return herrors.ErrFeatureNotAvailable
 		}
@@ -166,11 +169,11 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	configFile = filepath.Clean(configFile)
 
-	// We need an abolute filename to the config file.
+	// We need an absolute filename to the config file.
 	if !filepath.IsAbs(configFile) {
 		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
 		if configFile == "" && t.options.Config != "" {
-			// Only fail if the user specificed config file is not found.
+			// Only fail if the user specified config file is not found.
 			return errors.Errorf("postcss config %q not found:", configFile)
 		}
 	}
@@ -186,7 +189,10 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 		cmdArgs = append(cmdArgs, optArgs...)
 	}
 
-	cmd := exec.Command(binary, cmdArgs...)
+	cmd, err := hexec.SafeCommand(binary, cmdArgs...)
+	if err != nil {
+		return err
+	}
 
 	var errBuf bytes.Buffer
 	infoW := loggers.LoggerToWriterWithPrefix(logger.Info(), "postcss")

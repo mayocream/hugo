@@ -5,10 +5,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/gohugoio/hugo/common/hexec"
 
 	"github.com/gohugoio/hugo/common/hugio"
 
@@ -17,7 +18,7 @@ import (
 
 func main() {
 	// TODO(bep) git checkout tag
-	// The current is built with Go version b68fa57c599720d33a2d735782969ce95eabf794 / go1.15dev
+	// The current is built with Go version 2f0da6d9e29d9b9d5a4d10427ca9f71d12bbacc8 / go1.16
 	fmt.Println("Forking ...")
 	defer fmt.Println("Done ...")
 
@@ -74,6 +75,7 @@ var (
 		"\"text/template\"\n", "template \"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate\"\n",
 		`"html/template"`, `htmltemplate "html/template"`,
 		`"fmt"`, `htmltemplate "html/template"`,
+		`t.Skip("this test currently fails with -race; see issue #39807")`, `// t.Skip("this test currently fails with -race; see issue #39807")`,
 	)
 )
 
@@ -203,7 +205,7 @@ func removeAll(expression, content string) string {
 }
 
 func rewrite(filename, rule string) {
-	cmf := exec.Command("gofmt", "-w", "-r", rule, filename)
+	cmf, _ := hexec.SafeCommand("gofmt", "-w", "-r", rule, filename)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("gofmt failed:", string(out))
@@ -211,7 +213,7 @@ func rewrite(filename, rule string) {
 }
 
 func goimports(dir string) {
-	cmf := exec.Command("goimports", "-w", dir)
+	cmf, _ := hexec.SafeCommand("goimports", "-w", dir)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("goimports failed:", string(out))
@@ -219,7 +221,7 @@ func goimports(dir string) {
 }
 
 func gofmt(dir string) {
-	cmf := exec.Command("gofmt", "-w", dir)
+	cmf, _ := hexec.SafeCommand("gofmt", "-w", dir)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("gofmt failed:", string(out))

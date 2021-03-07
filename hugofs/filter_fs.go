@@ -137,6 +137,10 @@ func (fs *FilterFs) Chtimes(n string, a, m time.Time) error {
 	return syscall.EPERM
 }
 
+func (fs *FilterFs) Chown(n string, uid, gid int) error {
+	return syscall.EPERM
+}
+
 func (fs *FilterFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	fi, b, err := lstatIfPossible(fs.fs, name)
 	if err != nil {
@@ -276,7 +280,7 @@ func (f *filterDir) Readdirnames(count int) ([]string, error) {
 }
 
 // Try to extract the language from the given filename.
-// Any valid language identificator in the name will win over the
+// Any valid language identifier in the name will win over the
 // language set on the file system, e.g. "mypost.en.md".
 func langInfoFrom(languages map[string]int, name string) (string, string, string) {
 	var lang string

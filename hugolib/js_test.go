@@ -16,10 +16,11 @@ package hugolib
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/gohugoio/hugo/common/hexec"
 
 	"github.com/gohugoio/hugo/htesting"
 
@@ -33,12 +34,8 @@ import (
 )
 
 func TestJSBuildWithNPM(t *testing.T) {
-	if !isCI() {
+	if !htesting.IsCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
-	}
-
-	if runtime.GOOS == "windows" {
-		t.Skip("skip NPM test on Windows")
 	}
 
 	wd, _ := os.Getwd()
@@ -108,14 +105,16 @@ document.body.textContent = greeter(user);`
 JS:  {{ template "print" $js }}
 {{ $jsx := resources.Get "js/myjsx.jsx" | js.Build $options }}
 JSX: {{ template "print" $jsx }}
-{{ $ts := resources.Get "js/myts.ts" | js.Build }}
+{{ $ts := resources.Get "js/myts.ts" | js.Build (dict "sourcemap" "inline")}}
 TS: {{ template "print" $ts }}
-
+{{ $ts2 := resources.Get "js/myts.ts" | js.Build (dict "sourcemap" "external" "TargetPath" "js/myts2.js")}}
+TS2: {{ template "print" $ts2 }}
 {{ define "print" }}RelPermalink: {{.RelPermalink}}|MIME: {{ .MediaType }}|Content: {{ .Content | safeJS }}{{ end }}
 
 `)
 
 	jsDir := filepath.Join(workDir, "assets", "js")
+	fmt.Println(workDir)
 	b.Assert(os.MkdirAll(jsDir, 0777), qt.IsNil)
 	b.Assert(os.Chdir(workDir), qt.IsNil)
 	b.WithSourceFile("package.json", packageJSON)
@@ -125,11 +124,15 @@ TS: {{ template "print" $ts }}
 
 	b.WithSourceFile("assets/js/included.js", includedJS)
 
-	out, err := exec.Command("npm", "install").CombinedOutput()
+	cmd, err := hexec.SafeCommand("npm", "install")
+	b.Assert(err, qt.IsNil)
+	out, err := cmd.CombinedOutput()
 	b.Assert(err, qt.IsNil, qt.Commentf(string(out)))
 
 	b.Build(BuildCfg{})
 
+	b.AssertFileContent("public/js/myts.js", `//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJz`)
+	b.AssertFileContent("public/js/myts2.js.map", `"version": 3,`)
 	b.AssertFileContent("public/index.html", `
 console.log(&#34;included&#34;);
 if (hasSpace.test(string))
@@ -139,7 +142,7 @@ function greeter(person) {
 }
 
 func TestJSBuild(t *testing.T) {
-	if !isCI() {
+	if !htesting.IsCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
 
@@ -180,7 +183,7 @@ path="github.com/gohugoio/hugoTestProjectJSModImports"
         
 go 1.15
         
-require github.com/gohugoio/hugoTestProjectJSModImports v0.5.0 // indirect
+require github.com/gohugoio/hugoTestProjectJSModImports v0.9.0 // indirect
 
 `)
 
@@ -193,7 +196,8 @@ require github.com/gohugoio/hugoTestProjectJSModImports v0.5.0 // indirect
 }`)
 
 	b.Assert(os.Chdir(workDir), qt.IsNil)
-	_, err = exec.Command("npm", "install").CombinedOutput()
+	cmd, _ := hexec.SafeCommand("npm", "install")
+	_, err = cmd.CombinedOutput()
 	b.Assert(err, qt.IsNil)
 
 	b.Build(BuildCfg{})
@@ -206,5 +210,12 @@ var Hugo = "Rocks!";
 Hello3 from mod2. Date from date-fns: ${today}
 Hello from lib in the main project
 Hello5 from mod2.
-var myparam = "Hugo Rocks!";`)
+var myparam = "Hugo Rocks!";
+shim cwd
+`)
+
+	// React JSX, verify the shimming.
+	b.AssertFileContent("public/js/like.js", `@v0.9.0/assets/js/shims/react.js
+module.exports = window.ReactDOM;
+`)
 }

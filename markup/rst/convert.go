@@ -16,8 +16,10 @@ package rst
 
 import (
 	"bytes"
-	"os/exec"
 	"runtime"
+
+	"github.com/cli/safeexec"
+	"github.com/gohugoio/hugo/htesting"
 
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/internal"
@@ -64,7 +66,9 @@ func (c *rstConverter) getRstContent(src []byte, ctx converter.DocumentContext) 
 			"                 Leaving reStructuredText content unrendered.")
 		return src
 	}
-	logger.Println("Rendering", ctx.DocumentName, "with", path, "...")
+
+	logger.Infoln("Rendering", ctx.DocumentName, "with", path, "...")
+
 	var result []byte
 	// certain *nix based OSs wrap executables in scripted launchers
 	// invoking binaries on these OSs via python interpreter causes SyntaxError
@@ -96,9 +100,9 @@ func (c *rstConverter) getRstContent(src []byte, ctx converter.DocumentContext) 
 }
 
 func getRstExecPath() string {
-	path, err := exec.LookPath("rst2html")
+	path, err := safeexec.LookPath("rst2html")
 	if err != nil {
-		path, err = exec.LookPath("rst2html.py")
+		path, err = safeexec.LookPath("rst2html.py")
 		if err != nil {
 			return ""
 		}
@@ -108,5 +112,8 @@ func getRstExecPath() string {
 
 // Supports returns whether rst is installed on this computer.
 func Supports() bool {
+	if htesting.SupportsAll() {
+		return true
+	}
 	return getRstExecPath() != ""
 }

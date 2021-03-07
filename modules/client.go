@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gohugoio/hugo/common/hexec"
+
 	hglob "github.com/gohugoio/hugo/hugofs/glob"
 
 	"github.com/gobwas/glob"
@@ -235,6 +237,12 @@ func (c *Client) Vendor() error {
 			continue
 		}
 
+		// See https://github.com/gohugoio/hugo/issues/8239
+		// This is an error situation. We need something to vendor.
+		if t.Mounts() == nil {
+			return errors.Errorf("cannot vendor module %q, need at least one mount", t.Path())
+		}
+
 		fmt.Fprintln(&modulesContent, "# "+t.Path()+" "+t.Version())
 
 		dir := t.Dir()
@@ -351,7 +359,7 @@ var verifyErrorDirRe = regexp.MustCompile(`dir has been modified \((.*?)\)`)
 // which are stored in a local downloaded source cache, have not been
 // modified since being downloaded.
 func (c *Client) Verify(clean bool) error {
-	// TODO1 add path to mod clean
+	// TODO(bep) add path to mod clean
 	err := c.runVerify()
 	if err != nil {
 		if clean {
@@ -537,7 +545,10 @@ func (c *Client) runGo(
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd, err := hexec.SafeCommandContext(ctx, "go", args...)
+	if err != nil {
+		return err
+	}
 
 	cmd.Env = c.environ
 	cmd.Dir = c.ccfg.WorkingDir

@@ -18,8 +18,12 @@ package asciidocext
 
 import (
 	"bytes"
-	"os/exec"
 	"path/filepath"
+	"strings"
+
+	"github.com/gohugoio/hugo/htesting"
+
+	"github.com/cli/safeexec"
 
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/asciidocext/asciidocext_config"
@@ -102,11 +106,10 @@ func (a *asciidocConverter) parseArgs(ctx converter.DocumentContext) []string {
 	args = a.appendArg(args, "-b", cfg.Backend, asciidocext_config.CliDefault.Backend, asciidocext_config.AllowedBackend)
 
 	for _, extension := range cfg.Extensions {
-		if !asciidocext_config.AllowedExtensions[extension] {
-			a.cfg.Logger.Errorln("Unsupported asciidoctor extension was passed in. Extension `" + extension + "` ignored.")
+		if strings.LastIndexAny(extension, `\/.`) > -1 {
+			a.cfg.Logger.Errorln("Unsupported asciidoctor extension was passed in. Extension `" + extension + "` ignored. Only installed asciidoctor extensions are allowed.")
 			continue
 		}
-
 		args = append(args, "-r", extension)
 	}
 
@@ -193,7 +196,7 @@ func (a *asciidocConverter) appendArg(args []string, option, value, defaultValue
 }
 
 func getAsciidoctorExecPath() string {
-	path, err := exec.LookPath("asciidoctor")
+	path, err := safeexec.LookPath("asciidoctor")
 	if err != nil {
 		return ""
 	}
@@ -308,5 +311,8 @@ func nodeContent(node *html.Node) string {
 
 // Supports returns whether Asciidoctor is installed on this computer.
 func Supports() bool {
+	if htesting.SupportsAll() {
+		return true
+	}
 	return getAsciidoctorExecPath() != ""
 }

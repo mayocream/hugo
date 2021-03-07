@@ -249,7 +249,7 @@ const commonConfigSections = `
 [services.disqus]
 shortname = "disqus_shortname"
 [services.googleAnalytics]
-id = "ga_id"
+id = "UA-ga_id"
 
 [privacy]
 [privacy.disqus]
@@ -928,13 +928,13 @@ func buildSingleSite(t testing.TB, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Sit
 	return buildSingleSiteExpected(t, false, false, depsCfg, buildCfg)
 }
 
-func buildSingleSiteExpected(t testing.TB, expectSiteInitEror, expectBuildError bool, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Site {
+func buildSingleSiteExpected(t testing.TB, expectSiteInitError, expectBuildError bool, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Site {
 	t.Helper()
 	b := newTestSitesBuilderFromDepsCfg(t, depsCfg).WithNothingAdded()
 
 	err := b.CreateSitesE()
 
-	if expectSiteInitEror {
+	if expectSiteInitError {
 		b.Assert(err, qt.Not(qt.IsNil))
 		return nil
 	} else {
@@ -992,6 +992,18 @@ func pagesToString(pages ...page.Page) string {
 	return strings.Join(paths, "|")
 }
 
+func dumpPagesLinks(pages ...page.Page) {
+	var links []string
+	for _, p := range pages {
+		links = append(links, p.RelPermalink())
+	}
+	sort.Strings(links)
+
+	for _, link := range links {
+		fmt.Println(link)
+	}
+}
+
 func dumpPages(pages ...page.Page) {
 	fmt.Println("---------")
 	for _, p := range pages {
@@ -1030,10 +1042,6 @@ func printStringIndexes(s string) {
 		fmt.Println()
 
 	}
-}
-
-func isCI() bool {
-	return (os.Getenv("CI") != "" || os.Getenv("CI_LOCAL") != "") && os.Getenv("CIRCLE_BRANCH") == ""
 }
 
 // See https://github.com/golang/go/issues/19280
