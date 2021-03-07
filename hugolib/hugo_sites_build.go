@@ -54,12 +54,14 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		}()
 	}
 
+	// 性能分析
 	ctx, task := trace.NewTask(context.Background(), "Build")
 	defer task.End()
 
 	errCollector := h.StartErrorCollector()
 	errs := make(chan error)
 
+	// 错误处理
 	go func(from, to chan error) {
 		var errors []error
 		i := 0
@@ -91,8 +93,10 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 
 	var prepareErr error
 
+	// 如果不是部分文件重新渲染
 	if !config.PartialReRender {
 		prepare := func() error {
+			// 初始化
 			init := func(conf *BuildCfg) error {
 				for _, s := range h.Sites {
 					s.Deps.BuildStartListeners.Notify()

@@ -28,15 +28,15 @@ func New() *Init {
 
 // Init holds a graph of lazily initialized dependencies.
 type Init struct {
-	mu sync.Mutex
+	mu sync.Mutex // 并发修改图的锁
 
 	prev     *Init
 	children []*Init
 
-	init onceMore
-	out  interface{}
-	err  error
-	f    func() (interface{}, error)
+	init onceMore // 保证只执行一次的锁
+	out  interface{} // 执行结果
+	err  error // 执行错误
+	f    func() (interface{}, error) // 回调函数
 }
 
 // Add adds a func as a new child dependency.
@@ -76,10 +76,13 @@ func (ini *Init) Do() (interface{}, error) {
 		panic("init is nil")
 	}
 
+	// 调用 onceMore 库保证只执行一次
 	ini.init.Do(func() {
+		// 获取父节点
 		prev := ini.prev
 		if prev != nil {
 			// A branch. Initialize the ancestors.
+			// 若父节点还没有完成初始化, 并且没有正在执行的回调函数, 执行
 			if prev.shouldInitialize() {
 				_, err := prev.Do()
 				if err != nil {
@@ -89,14 +92,18 @@ func (ini *Init) Do() (interface{}, error) {
 			} else if prev.inProgress() {
 				// Concurrent initialization. The following init func
 				// may depend on earlier state, so wait.
+				// 等待一定时间, 若没有执行完, panic
 				prev.wait()
 			}
 		}
 
+		// 执行回调函数
 		if ini.f != nil {
 			ini.out, ini.err = ini.f()
 		}
 
+		// 循环执行子节点的回调函数
+		// 为什么不并发执行 ?
 		for _, child := range ini.children {
 			if child.shouldInitialize() {
 				_, err := child.Do()
@@ -129,6 +136,7 @@ func (ini *Init) inProgress() bool {
 	return ini != nil && ini.init.InProgress()
 }
 
+// 若 没有注册了回调函数 | 已经完成 | 正在执行, 不进行初始化
 func (ini *Init) shouldInitialize() bool {
 	return !(ini == nil || ini.init.Done() || ini.init.InProgress())
 }
@@ -142,22 +150,28 @@ func (ini *Init) Reset() {
 	}
 }
 
+// 添加图的节点
 func (ini *Init) add(branch bool, initFn func() (interface{}, error)) *Init {
 	ini.mu.Lock()
 	defer ini.mu.Unlock()
 
+	// 如果是新建分支
 	if branch {
 		return &Init{
 			f:    initFn,
-			prev: ini,
+			prev: ini, // 父节点
 		}
 	}
 
+	// 如果是添加子节点
+	// 如果已经被执行, panic
 	ini.checkDone()
+	// 添加子节点
 	ini.children = append(ini.children, &Init{
 		f: initFn,
 	})
 
+	// 释放锁
 	return ini
 }
 
@@ -167,9 +181,11 @@ func (ini *Init) checkDone() {
 	}
 }
 
+// callback 函数, 有超时时间
 func (ini *Init) withTimeout(timeout time.Duration, f func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	// 缓存通道, 防止阻塞
 	c := make(chan verr, 1)
 
 	go func() {

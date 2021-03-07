@@ -306,10 +306,12 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 
 	var contentChangeTracker *contentChangeMap
 
+	// 获取 worker 数量, 默认为 CPU 逻辑线程数
 	numWorkers := config.GetNumWorkerMultiplier()
 	if numWorkers > len(sites) {
 		numWorkers = len(sites)
 	}
+	// 封装 errgroup
 	var workers *para.Workers
 	if numWorkers > 1 {
 		workers = para.New(numWorkers)
@@ -336,6 +338,7 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 		donec: make(chan bool),
 	}
 
+	// 添加懒加载函数
 	h.init.data.Add(func() (interface{}, error) {
 		err := h.loadData(h.PathSpec.BaseFs.Data.Dirs)
 		if err != nil {
@@ -504,6 +507,7 @@ func applyDeps(cfg deps.DepsCfg, sites ...*Site) error {
 	return nil
 }
 
+// 创建 sites 配置
 // NewHugoSites creates HugoSites from the given config.
 func NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error) {
 	if cfg.Logger == nil {
@@ -531,9 +535,11 @@ func (s *Site) withSiteTemplates(withTemplates ...func(templ tpl.TemplateManager
 	}
 }
 
+// 创建 sites 的配置
 func createSitesFromConfig(cfg deps.DepsCfg) ([]*Site, error) {
 	var sites []*Site
 
+	// 获取多语言配置
 	languages := getLanguages(cfg.Cfg)
 
 	for _, lang := range languages {
@@ -543,6 +549,7 @@ func createSitesFromConfig(cfg deps.DepsCfg) ([]*Site, error) {
 		var s *Site
 		var err error
 		cfg.Language = lang
+		// 为每个语言创建一个 site
 		s, err = newSite(cfg)
 
 		if err != nil {

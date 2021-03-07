@@ -63,7 +63,9 @@ func (b *commandsBuilder) addAll() *commandsBuilder {
 }
 
 func (b *commandsBuilder) build() *hugoCmd {
+	// 添加主 hugo 命令
 	h := b.newHugoCmd()
+	// 将命令数组添加进 Corba 的 Root Command 中, 作为子命令
 	addCommands(h.getCommand(), b.commands...)
 	return h
 }
@@ -141,6 +143,7 @@ func (c *nilCommand) getCommand() *cobra.Command {
 func (c *nilCommand) flagsToConfig(cfg config.Provider) {
 }
 
+// 创建 hugoCmd 封装块
 func (b *commandsBuilder) newHugoCmd() *hugoCmd {
 	cc := &hugoCmd{}
 
@@ -153,22 +156,27 @@ Hugo is a Fast and Flexible Static Site Generator
 built with love by spf13 and friends in Go.
 
 Complete documentation is available at http://gohugo.io/.`,
+
+		// 执行渲染操作
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// 记录全局操作耗时
 			defer cc.timeTrack(time.Now(), "Total")
 			cfgInit := func(c *commandeer) error {
 				if cc.buildWatch {
+					// 如果开启了 watch 模式则关闭动态重载
 					c.Set("disableLiveReload", true)
 				}
 				return nil
 			}
 
+			// 初始化配置
 			c, err := initializeConfig(true, cc.buildWatch, &cc.hugoBuilderCommon, cc, cfgInit)
 			if err != nil {
 				return err
 			}
 			cc.c = c
 
+			// 编译操作
 			return c.build()
 		},
 	})
@@ -186,6 +194,7 @@ Complete documentation is available at http://gohugo.io/.`,
 	cc.cmd.PersistentFlags().StringVar(&cc.logFile, "logFile", "", "log File path (if set, logging enabled automatically)")
 	cc.cmd.PersistentFlags().BoolVar(&cc.verboseLog, "verboseLog", false, "verbose logging")
 
+	// 是否开启 running 模式
 	cc.cmd.Flags().BoolVarP(&cc.buildWatch, "watch", "w", false, "watch filesystem for changes and recreate as needed")
 
 	cc.cmd.Flags().Bool("renderToMemory", false, "render to memory (only useful for benchmark testing)")
@@ -209,6 +218,7 @@ type hugoBuilderCommon struct {
 	// 运行环境 develop, production
 	environment string
 
+	// buildWatch running
 	buildWatch bool
 
 	gc bool

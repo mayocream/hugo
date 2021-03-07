@@ -43,6 +43,7 @@ type errGroupRunner struct {
 
 func (g *errGroupRunner) Run(fn func() error) {
 	select {
+	// 分配一个信号, 如果 chan 被关闭则退出
 	case g.w.sem <- struct{}{}:
 	case <-g.ctx.Done():
 		return
@@ -50,6 +51,7 @@ func (g *errGroupRunner) Run(fn func() error) {
 
 	g.Go(func() error {
 		err := fn()
+		// 执行完后消费信号量, 通过缓存通道保证并发执行的协程数量
 		<-g.w.sem
 		return err
 	})
@@ -58,6 +60,7 @@ func (g *errGroupRunner) Run(fn func() error) {
 // New creates a new Workers with the given number of workers.
 func New(numWorkers int) *Workers {
 	return &Workers{
+		// 缓冲通道, 并发写入
 		sem: make(chan struct{}, numWorkers),
 	}
 }

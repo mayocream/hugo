@@ -157,7 +157,8 @@ func (c *commandeer) initFs(fs *hugofs.Fs) error {
 	return nil
 }
 
-// 创建程序核心
+// 创建编译核心
+// running 表示是否开启 watch 模式, 默认为 false
 func newCommandeer(mustHaveConfigFile, running bool, h *hugoBuilderCommon, f flagsToConfigHandler, cfgInit func(c *commandeer) error, subCmdVs ...*cobra.Command) (*commandeer, error) {
 	var rebuildDebouncer func(f func())
 	if running {
@@ -175,12 +176,12 @@ func newCommandeer(mustHaveConfigFile, running bool, h *hugoBuilderCommon, f fla
 
 	c := &commandeer{
 		h:                   h,
-		ftch:                f,
-		commandeerHugoState: newCommandeerHugoState(),
+		ftch:                f, // 获取配置的 interface
+		commandeerHugoState: newCommandeerHugoState(), // 创建空的 state
 		cfgInit:             cfgInit,
 		// 淘汰队列最大为 10
 		visitedURLs:         types.NewEvictingStringQueue(10),
-		debounce:            rebuildDebouncer,
+		debounce:            rebuildDebouncer, // 默认为 nil
 		// 同步信号量，同时只能有一个进行
 		fullRebuildSem:      semaphore.NewWeighted(1),
 		// This will be replaced later, but we need something to log to before the configuration is read.
@@ -252,8 +253,9 @@ func (f *fileChangeDetector) PrepareNew() {
 	f.current = make(map[string]string)
 }
 
+// loadConfig 初始化配置
 func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
-	if c.DepsCfg == nil {
+	if c.DepsCfg == nil { // 默认为 nil
 		c.DepsCfg = &deps.DepsCfg{}
 	}
 
@@ -270,14 +272,18 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 	if c.h.source != "" {
 		dir, _ = filepath.Abs(c.h.source)
 	} else {
+		// 设置当前工作文件夹为 source 目录
 		dir, _ = os.Getwd()
 	}
 
+	// 创建文件操作符
 	var sourceFs afero.Fs = hugofs.Os
 	if c.DepsCfg.Fs != nil {
 		sourceFs = c.DepsCfg.Fs.Source
 	}
 
+	// 获取运行环境
+	// watch 模式则为 dev, 否则为 prod
 	environment := c.h.getEnvironment(running)
 
 	doWithConfig := func(cfg config.Provider) error {
@@ -299,13 +305,17 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 		return err
 	}
 
+	// 配置文件夹目录
 	configPath := c.h.source
 	if configPath == "" {
 		configPath = dir
 	}
+
+	// 加载配置到 Viper
+	// 返回 viper 对象, 和加载的配置文件名
 	config, configFiles, err := hugolib.LoadConfig(
 		hugolib.ConfigSourceDescriptor{
-			Fs:           sourceFs,
+			Fs:           sourceFs, // afero.osFs
 			Logger:       c.logger,
 			Path:         configPath,
 			WorkingDir:   dir,
@@ -325,6 +335,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 
 	c.configFiles = configFiles
 
+	// 获取多语言配置
 	if l, ok := c.Cfg.Get("languagesSorted").(langs.Languages); ok {
 		c.languagesConfigured = true
 		c.languages = l
@@ -332,7 +343,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 
 	// Set some commonly used flags
 	c.doLiveReload = running && !c.Cfg.GetBool("disableLiveReload")
-	c.fastRenderMode = c.doLiveReload && !c.Cfg.GetBool("disableFastRender")
+	c.fastRenderMode = c.doLiveReload && !c.Cfg.GetBool("disableFastRender") // 默认为 false
 	c.showErrorInBrowser = c.doLiveReload && !c.Cfg.GetBool("disableBrowserError")
 
 	// This is potentially double work, but we need to do this one more time now
@@ -363,6 +374,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 	}
 
 	c.fsCreate.Do(func() {
+		// 创建 Read Only 文件操作符
 		fs := hugofs.NewFrom(sourceFs, config)
 
 		if c.destinationFs != nil {
@@ -373,7 +385,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 			fs.Destination = new(afero.MemMapFs)
 		}
 
-		// 快速渲染模式
+		// 快速渲染模式, 默认为 false
 		if c.fastRenderMode {
 			// For now, fast render mode only. It should, however, be fast enough
 			// for the full variant, too.
@@ -406,6 +418,8 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 
 		h, err = hugolib.NewHugoSites(*c.DepsCfg)
 		c.hugoSites = h
+
+		// 初始化完成
 		close(c.created)
 	})
 

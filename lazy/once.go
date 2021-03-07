@@ -38,10 +38,14 @@ func (t *onceMore) Do(f func()) {
 	// f may call this Do and we would get a deadlock.
 	locked := atomic.CompareAndSwapUint32(&t.lock, 0, 1)
 	if !locked {
+		// 没有抢到原子操作
 		return
 	}
+	// 释放原子锁
+	// defer 是 FILO, 该原子锁会最后才释放
 	defer atomic.StoreUint32(&t.lock, 0)
 
+	// 并发锁, 保证 t.done 值的读取不会产生竞争
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

@@ -120,6 +120,7 @@ func LoadConfigDefault(fs afero.Fs) (*viper.Viper, error) {
 
 var ErrNoConfigFile = errors.New("Unable to locate config file or config directory. Perhaps you need to create a new site.\n       Run `hugo help new` for details.\n")
 
+// 加载配置文件
 // LoadConfig loads Hugo configuration into a new Viper and then adds
 // a set of defaults.
 func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provider) error) (*viper.Viper, []string, error) {
@@ -136,8 +137,10 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 	v := viper.New()
 	l := configLoader{ConfigSourceDescriptor: d}
 
+	// 自定义多个配置文件
 	for _, name := range d.configFilenames() {
 		var filename string
+		// viper 加载配置
 		filename, err := l.loadConfig(name, v)
 		if err == nil {
 			configFiles = append(configFiles, filename)
@@ -146,6 +149,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		}
 	}
 
+	// 加载配置文件目录
 	if d.AbsConfigDir != "" {
 		dirnames, err := l.loadConfigFromConfigDir(v)
 		if err == nil {
@@ -155,6 +159,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		}
 	}
 
+	// 加载默认配置
 	if err := loadDefaultSettingsFor(v); err != nil {
 		return v, configFiles, err
 	}
@@ -169,6 +174,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 
 	const delim = "__env__delim"
 
+	// 环境变量覆盖
 	// Apply environment overrides
 	if len(d.Environ) > 0 {
 		// Extract all that start with the HUGO prefix.
@@ -268,6 +274,7 @@ type configLoader struct {
 	ConfigSourceDescriptor
 }
 
+// 加载配置文件
 func (l configLoader) loadConfig(configName string, v *viper.Viper) (string, error) {
 	baseDir := l.configFileDir()
 	var baseFilename string
@@ -303,6 +310,7 @@ func (l configLoader) loadConfig(configName string, v *viper.Viper) (string, err
 		return "", l.wrapFileError(err, filename)
 	}
 
+	// 加载配置到 viper
 	if err = v.MergeConfigMap(m); err != nil {
 		return "", l.wrapFileError(err, filename)
 	}
@@ -320,6 +328,7 @@ func (l configLoader) wrapFileError(err error, filename string) error {
 	return err
 }
 
+// 从配置目录加载配置
 func (l configLoader) loadConfigFromConfigDir(v *viper.Viper) ([]string, error) {
 	sourceFs := l.Fs
 	configDir := l.AbsConfigDir
@@ -358,12 +367,15 @@ func (l configLoader) loadConfigFromConfigDir(v *viper.Viper) ([]string, error) 
 				return nil
 			}
 
+			// 检查文件后缀是否是支持的格式
 			if !config.IsValidConfigFilename(path) {
 				return nil
 			}
 
+			// 文件名, 移除文件后缀
 			name := helpers.Filename(filepath.Base(path))
 
+			// 加载文件内容到 map
 			item, err := metadecoders.Default.UnmarshalFileToMap(sourceFs, path)
 			if err != nil {
 				return l.wrapFileError(err, path)
@@ -371,13 +383,17 @@ func (l configLoader) loadConfigFromConfigDir(v *viper.Viper) ([]string, error) 
 
 			var keyPath []string
 
+			// 如果不是 hugo 的 config 文件
 			if name != "config" {
 				// Can be params.jp, menus.en etc.
+				// 如果文件还有后缀, 可能是语言后缀
 				name, lang := helpers.FileAndExtNoDelimiter(name)
 
 				keyPath = []string{name}
 
+				// 如果语言后缀存在
 				if lang != "" {
+					// 填充语言文件夹路径
 					keyPath = []string{"languages", lang}
 					switch name {
 					case "menu", "menus":
@@ -392,8 +408,15 @@ func (l configLoader) loadConfigFromConfigDir(v *viper.Viper) ([]string, error) 
 			if len(keyPath) > 0 {
 				root = make(map[string]interface{})
 				m := root
+
+				// 遍历形成层级关系
+
+				// 遍历语言文件夹的路径
+				// i 从 0 开始
 				for i, key := range keyPath {
+					// 如果 i >= 最后一个元素的 index
 					if i >= len(keyPath)-1 {
+						// 将文件内容填充到 key 下面
 						m[key] = item
 					} else {
 						nm := make(map[string]interface{})
@@ -406,6 +429,7 @@ func (l configLoader) loadConfigFromConfigDir(v *viper.Viper) ([]string, error) 
 			// Migrate menu => menus etc.
 			config.RenameKeys(root)
 
+			// 合并配置文件
 			if err := v.MergeConfigMap(root); err != nil {
 				return l.wrapFileError(err, path)
 			}

@@ -20,6 +20,7 @@ import (
 )
 
 func main() {
+	// 执行 Corba 命令
 	resp := commands.Execute(os.Args[1:])
 
 	if resp.Err != nil {

@@ -77,6 +77,7 @@ func (r Response) IsUserError() bool {
 	return r.Err != nil && isUserError(r.Err)
 }
 
+// 全局入口
 // Execute adds all child commands to the root command HugoCmd and sets flags appropriately.
 // The args are usually filled with os.Args[1:].
 func Execute(args []string) Response {
@@ -112,9 +113,10 @@ func Execute(args []string) Response {
 	return resp
 }
 
+// 初始化配置
 // InitializeConfig initializes a config file with sensible default configuration flags.
 func initializeConfig(mustHaveConfigFile, running bool,
-	h *hugoBuilderCommon,
+	h *hugoBuilderCommon, // 此处的 h 为空值, 传入指针对值进行修改
 	f flagsToConfigHandler,
 	cfgInit func(c *commandeer) error) (*commandeer, error) {
 	c, err := newCommandeer(mustHaveConfigFile, running, h, f, cfgInit)
@@ -276,6 +278,7 @@ func isTerminal() bool {
 	return terminal.IsTerminal(os.Stdout)
 }
 
+// fullBuild 全量 build
 func (c *commandeer) fullBuild() error {
 	var (
 		g         errgroup.Group
@@ -291,6 +294,7 @@ func (c *commandeer) fullBuild() error {
 		}
 	}
 
+	// 简单地复制静态文件到 publish 目录, diff 比对同步文件
 	copyStaticFunc := func() error {
 		cnt, err := c.copyStatic()
 		if err != nil {
@@ -440,6 +444,7 @@ func (c *commandeer) initMemTicker() func() {
 	}
 }
 
+// initProfiling 初始化 pprof
 func (c *commandeer) initProfiling() (func(), error) {
 	stopCPUProf, err := c.initCPUProfile()
 	if err != nil {
@@ -481,18 +486,22 @@ func (c *commandeer) initProfiling() (func(), error) {
 	}, nil
 }
 
+// build 执行一次编译操作
 func (c *commandeer) build() error {
+	// 初始化 pprof
 	stopProfiling, err := c.initProfiling()
 	if err != nil {
 		return err
 	}
 
 	defer func() {
+		// 停止记录
 		if stopProfiling != nil {
 			stopProfiling()
 		}
 	}()
 
+	// 由于没有开启 watch 模式, 使用全量 build
 	if err := c.fullBuild(); err != nil {
 		return err
 	}
@@ -563,6 +572,7 @@ func (c *commandeer) serverBuild() error {
 	return nil
 }
 
+// copyStatic 复制静态文件目录
 func (c *commandeer) copyStatic() (map[string]uint64, error) {
 	m, err := c.doWithPublishDirs(c.copyStaticTo)
 	if err == nil || os.IsNotExist(err) {
@@ -571,6 +581,7 @@ func (c *commandeer) copyStatic() (map[string]uint64, error) {
 	return m, err
 }
 
+// doWithPublishDirs 封装对 /publish 的所有操作
 func (c *commandeer) doWithPublishDirs(f func(sourceFs *filesystems.SourceFilesystem) (uint64, error)) (map[string]uint64, error) {
 	langCount := make(map[string]uint64)
 
@@ -719,6 +730,7 @@ func (c *commandeer) getDirList() ([]string, error) {
 	return filenames, nil
 }
 
+// buildSites build 整个 site
 func (c *commandeer) buildSites() (err error) {
 	return c.hugo().Build(hugolib.BuildCfg{})
 }

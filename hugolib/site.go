@@ -218,12 +218,15 @@ func (s *Site) initInit(init *lazy.Init, pctx pageContext) bool {
 	return err == nil
 }
 
+// 初始化
 func (s *Site) prepareInits() {
 	s.init = &siteInit{}
 
 	var init lazy.Init
 
+	// 回调函数
 	s.init.prevNext = init.Branch(func() (interface{}, error) {
+		// 获取 pages
 		regularPages := s.RegularPages()
 		for i, p := range regularPages {
 			np, ok := p.(nextPrevProvider)
