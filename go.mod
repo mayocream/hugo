@@ -15,7 +15,7 @@ require (
 	github.com/bep/golibsass v1.1.1
 	github.com/bep/gowebp v0.3.0
 	github.com/bep/helpers v0.4.0
-	github.com/bep/imagemeta v0.7.5
+	github.com/bep/imagemeta v0.7.6
 	github.com/bep/lazycache v0.4.0
 	github.com/bep/logg v0.4.0
 	github.com/bep/mclib v1.20400.20402
@@ -40,7 +40,7 @@ require (
 	github.com/gohugoio/hashstructure v0.1.0
 	github.com/gohugoio/httpcache v0.7.0
 	github.com/gohugoio/hugo-goldmark-extensions/extras v0.2.0
-	github.com/gohugoio/hugo-goldmark-extensions/passthrough v0.2.0
+	github.com/gohugoio/hugo-goldmark-extensions/passthrough v0.3.0
 	github.com/gohugoio/locales v0.14.0
 	github.com/gohugoio/localescompressed v1.0.1
 	github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95
@@ -63,22 +63,23 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/sanity-io/litter v1.5.5
 	github.com/spf13/afero v1.11.0
-	github.com/spf13/cast v1.6.0
+	github.com/spf13/cast v1.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/fsync v0.10.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tdewolff/minify/v2 v2.20.37
 	github.com/tdewolff/parse/v2 v2.7.15
+	github.com/tetratelabs/wazero v1.7.4-0.20240805170331-2b12e189eeec
 	github.com/yuin/goldmark v1.7.4
 	github.com/yuin/goldmark-emoji v1.0.3
 	go.uber.org/automaxprocs v1.5.3
 	gocloud.dev v0.38.0
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
-	golang.org/x/image v0.18.0
+	golang.org/x/image v0.19.0
 	golang.org/x/mod v0.19.0
-	golang.org/x/net v0.27.0
-	golang.org/x/sync v0.7.0
-	golang.org/x/text v0.16.0
+	golang.org/x/net v0.28.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/text v0.17.0
 	golang.org/x/tools v0.23.0
 	google.golang.org/api v0.189.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -154,9 +155,9 @@ require (
 	go.opentelemetry.io/otel v1.26.0 // indirect
 	go.opentelemetry.io/otel/metric v1.26.0 // indirect
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade // indirect

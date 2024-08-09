@@ -78,6 +78,49 @@ type CodeblockContext interface {
 	Ordinal() int
 }
 
+// BlockquoteContext is the context passed to a blockquote render hook.
+type BlockquoteContext interface {
+	AttributesProvider
+	text.Positioner
+	PageProvider
+
+	// Zero-based ordinal for all block quotes in the current document.
+	Ordinal() int
+
+	// The blockquote text.
+	// If type is "alert", this will be the alert text.
+	Text() hstring.RenderedString
+
+	/// Returns the blockquote type, one of "regular" and "alert".
+	// Type "alert" indicates that this is a GitHub type alert.
+	Type() string
+
+	// The GitHub alert type converted to lowercase, e.g. "note".
+	// Only set if Type is "alert".
+	AlertType() string
+}
+
+type PositionerSourceTargetProvider interface {
+	// For internal use.
+	PositionerSourceTarget() []byte
+}
+
+// PassThroughContext is the context passed to a passthrough render hook.
+type PassthroughContext interface {
+	AttributesProvider
+	text.Positioner
+	PageProvider
+
+	// Currently one of "inline" or "block".
+	Type() string
+
+	// The inner content of the passthrough element, excluding the delimiters.
+	Inner() string
+
+	// Zero-based ordinal for all passthrough elements in the document.
+	Ordinal() int
+}
+
 type AttributesOptionsSliceProvider interface {
 	AttributesSlice() []attributes.Attribute
 	OptionsSlice() []attributes.Attribute
@@ -89,6 +132,14 @@ type LinkRenderer interface {
 
 type CodeBlockRenderer interface {
 	RenderCodeblock(cctx context.Context, w hugio.FlexiWriter, ctx CodeblockContext) error
+}
+
+type BlockquoteRenderer interface {
+	RenderBlockquote(cctx context.Context, w hugio.FlexiWriter, ctx BlockquoteContext) error
+}
+
+type PassthroughRenderer interface {
+	RenderPassthrough(cctx context.Context, w io.Writer, ctx PassthroughContext) error
 }
 
 type IsDefaultCodeBlockRendererProvider interface {
@@ -143,6 +194,8 @@ const (
 	ImageRendererType
 	HeadingRendererType
 	CodeBlockRendererType
+	PassthroughRendererType
+	BlockquoteRendererType
 )
 
 type GetRendererFunc func(t RendererType, id any) any
